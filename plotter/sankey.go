@@ -20,10 +20,6 @@ import (
 // the amount of each stock and lines between the stocks representing the
 // amount of each flow.
 type Sankey struct {
-	// StockPad specifies the padding between
-	// stocks in the same category, in chart units.
-	StockPad float64
-
 	// Color specifies the default fill
 	// colors for the stocks and flows. Colors can be
 	// modified for individual stocks and flows.
@@ -74,24 +70,24 @@ type stock struct {
 	max float64
 
 	// sourceFlowPlaceholder and receptorFlowPlaceholder track
-	//  the current plotting location during
+	// the current plotting location during
 	// the plotting process.
 	sourceFlowPlaceholder, receptorFlowPlaceholder float64
 }
 
 // A Flow represents the amount of an entity flowing between two stocks.
 type Flow struct {
-	// SourceStockLabel and ReceptorStockLabel are the labels
+	// SourceLabel and ReceptorLabel are the labels
 	// of the stocks that originate and receive the flow,
 	// respectively.
-	SourceStockLabel, ReceptorStockLabel string
+	SourceLabel, ReceptorLabel string
 
-	// SourceStockCategory and ReceptorStockCategory define
+	// SourceCategory and ReceptorCategory define
 	// the locations on the category axis of the stocks that
 	// originate and receive the flow, respectively. The
-	// SourceStockCategory must be a lower number than
-	// the ReceptorStockCategory.
-	SourceStockCategory, ReceptorStockCategory int
+	// SourceCategory must be a lower number than
+	// the ReceptorCategory.
+	SourceCategory, ReceptorCategory int
 
 	// Value represents the magnitute of the flow.
 	// It must be greater than or equal to zero.
@@ -112,42 +108,42 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 
 	s.flows = flows
 	for i, f := range flows {
-		// check stock category order
-		if f.SourceStockCategory >= f.ReceptorStockCategory {
-			return nil, fmt.Errorf("plotter.NewSankey: Flow %d SourceStockCategory (%d) "+
-				">= ReceptorStockCategory (%d)", i, f.SourceStockCategory, f.ReceptorStockCategory)
+		// Here we make sure the stock categories are in the proper order.
+		if f.SourceCategory >= f.ReceptorCategory {
+			return nil, fmt.Errorf("plotter.NewSankey: Flow %d SourceCategory (%d) "+
+				">= ReceptorCategory (%d)", i, f.SourceCategory, f.ReceptorCategory)
 		}
 		if f.Value < 0 {
 			return nil, fmt.Errorf("plotter.NewSankey: Flow %d value (%g) < 0", i, f.Value)
 		}
 
-		// initialize stock holders
-		if _, ok := s.stocks[f.SourceStockCategory]; !ok {
-			s.stocks[f.SourceStockCategory] = make(map[string]*stock)
+		// Here we initialize the stock holders.
+		if _, ok := s.stocks[f.SourceCategory]; !ok {
+			s.stocks[f.SourceCategory] = make(map[string]*stock)
 		}
-		if _, ok := s.stocks[f.ReceptorStockCategory]; !ok {
-			s.stocks[f.ReceptorStockCategory] = make(map[string]*stock)
-		}
-
-		// figure out plotting order of stocks
-		if _, ok := s.stocks[f.SourceStockCategory][f.SourceStockLabel]; !ok {
-			s.stocks[f.SourceStockCategory][f.SourceStockLabel] = &stock{
-				order:    len(s.stocks[f.SourceStockCategory]),
-				label:    f.SourceStockLabel,
-				category: f.SourceStockCategory,
-			}
-		}
-		if _, ok := s.stocks[f.ReceptorStockCategory][f.ReceptorStockLabel]; !ok {
-			s.stocks[f.ReceptorStockCategory][f.ReceptorStockLabel] = &stock{
-				order:    len(s.stocks[f.ReceptorStockCategory]),
-				label:    f.ReceptorStockLabel,
-				category: f.ReceptorStockCategory,
-			}
+		if _, ok := s.stocks[f.ReceptorCategory]; !ok {
+			s.stocks[f.ReceptorCategory] = make(map[string]*stock)
 		}
 
-		// add to total value of stocks
-		s.stocks[f.SourceStockCategory][f.SourceStockLabel].sourceValue += f.Value
-		s.stocks[f.ReceptorStockCategory][f.ReceptorStockLabel].receptorValue += f.Value
+		// Here we figure out the plotting order of the stocks.
+		if _, ok := s.stocks[f.SourceCategory][f.SourceLabel]; !ok {
+			s.stocks[f.SourceCategory][f.SourceLabel] = &stock{
+				order:    len(s.stocks[f.SourceCategory]),
+				label:    f.SourceLabel,
+				category: f.SourceCategory,
+			}
+		}
+		if _, ok := s.stocks[f.ReceptorCategory][f.ReceptorLabel]; !ok {
+			s.stocks[f.ReceptorCategory][f.ReceptorLabel] = &stock{
+				order:    len(s.stocks[f.ReceptorCategory]),
+				label:    f.ReceptorLabel,
+				category: f.ReceptorCategory,
+			}
+		}
+
+		// Here we add the current value to the total value of the stocks
+		s.stocks[f.SourceCategory][f.SourceLabel].sourceValue += f.Value
+		s.stocks[f.ReceptorCategory][f.ReceptorLabel].receptorValue += f.Value
 	}
 
 	s.LineStyle = DefaultLineStyle
@@ -180,12 +176,12 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 
 	trCat, trVal := plt.Transforms(&c)
 
-	// draw the flows
+	// Here we draw the flows.
 	for _, f := range s.flows {
-		startStock := s.stocks[f.SourceStockCategory][f.SourceStockLabel]
-		endStock := s.stocks[f.ReceptorStockCategory][f.ReceptorStockLabel]
-		catStart := trCat(float64(f.SourceStockCategory)) + s.StockBarWidth/2
-		catEnd := trCat(float64(f.ReceptorStockCategory)) - s.StockBarWidth/2
+		startStock := s.stocks[f.SourceCategory][f.SourceLabel]
+		endStock := s.stocks[f.ReceptorCategory][f.ReceptorLabel]
+		catStart := trCat(float64(f.SourceCategory)) + s.StockBarWidth/2
+		catEnd := trCat(float64(f.ReceptorCategory)) - s.StockBarWidth/2
 		valStartLow := trVal(startStock.min + startStock.sourceFlowPlaceholder)
 		valEndLow := trVal(endStock.min + endStock.receptorFlowPlaceholder)
 		valStartHigh := trVal(startStock.min + startStock.sourceFlowPlaceholder + f.Value)
@@ -204,18 +200,18 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 
 		color, lineStyle := s.FlowStyle(f.Group)
 
-		// fill
+		// Here we fill the flow polygons.
 		poly := c.ClipPolygonX(append(ptsLow, ptsHigh...))
 		c.FillPolygon(color, poly)
 
-		// draw edges
+		// Here we draw the flow edges.
 		outline := c.ClipLinesX(ptsLow)
 		c.StrokeLines(lineStyle, outline...)
 		outline = c.ClipLinesX(ptsHigh)
 		c.StrokeLines(lineStyle, outline...)
 	}
 
-	// draw the stocks
+	// Here we draw the stocks.
 	for _, stk := range stocks {
 		catLoc := trCat(float64(stk.category))
 		if !c.ContainsX(catLoc) {
@@ -224,7 +220,7 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 		catMin, catMax := catLoc-s.StockBarWidth/2, catLoc+s.StockBarWidth/2
 		valMin, valMax := trVal(stk.min), trVal(stk.max)
 
-		// fill
+		// Here we fill the stock bars.
 		pts := []vg.Point{
 			{catMin, valMin},
 			{catMin, valMax},
@@ -236,7 +232,7 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 		txtPt := vg.Point{X: (catMin + catMax) / 2, Y: (valMin + valMax) / 2}
 		c.FillText(s.TextStyle, txtPt, stk.label)
 
-		// draw bottom edge
+		// Here we draw the bottom edge.
 		pts = []vg.Point{
 			{catMin, valMin},
 			{catMax, valMin},
@@ -244,7 +240,8 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 		// outline := c.ClipLinesX(pts) // This causes half of the lines to disappear.
 		c.StrokeLines(s.LineStyle, pts) //outline...)
 
-		// draw top edge plus vertical edges with no flows connected.
+		// Here we draw the top edge plus vertical edges where there are
+		// no flows connected.
 		pts = []vg.Point{
 			{catMin, valMax},
 			{catMax, valMax},
@@ -261,7 +258,7 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 	}
 }
 
-// stockList returns a sorted list of the stocks in the diagram
+// stockList returns a sorted list of the stocks in the diagram.
 func (s *Sankey) stockList() []*stock {
 	var stocks []*stock
 	for _, ss := range s.stocks {
@@ -273,6 +270,8 @@ func (s *Sankey) stockList() []*stock {
 	return stocks
 }
 
+// stockSorter is a wrapper for a list of *stocks that implements
+// sort.Interface.
 type stockSorter []*stock
 
 func (s stockSorter) Len() int      { return len(s) }
@@ -284,10 +283,10 @@ func (s stockSorter) Less(i, j int) bool {
 	if s[i].order != s[j].order {
 		return s[i].order < s[j].order
 	}
-	panic(fmt.Errorf("can't sort stocks:\n%+v\n%+v", s[i], s[j]))
+	panic(fmt.Errorf("plotter: can't sort stocks:\n%+v\n%+v", s[i], s[j]))
 }
 
-// setStockMin sets the minimum values of the stock plotting locations.
+// setStockMin sets the minimum and maximum values of the stock plotting locations.
 func (s *Sankey) setStockMinMax(stocks *[]*stock) {
 	var cat int
 	var min float64
@@ -370,11 +369,9 @@ func (s *Sankey) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
 	return boxes
 }
 
-// Thumbnailers creates a group of plotters that do not
-// plot anything but do add legend entries for the
-// different flow groups in this diagram. The thumbnailers
-// and the legendLabels should be added to the plot before
-// creating the legend.
+// Thumbnailers creates a group of objects that can be used to
+// add legend entries for the different flow groups in this
+// diagram, as well as the flow group labels that correspond to them.
 func (s *Sankey) Thumbnailers() (legendLabels []string, thumbnailers []plot.Thumbnailer) {
 	type empty struct{}
 	flowGroups := make(map[string]empty)
@@ -398,6 +395,8 @@ func (s *Sankey) Thumbnailers() (legendLabels []string, thumbnailers []plot.Thum
 	return
 }
 
+// sankeyFlowThumbnailer implements the Thumbnailer interface
+// for Sankey flow groups.
 type sankeyFlowThumbnailer struct {
 	draw.LineStyle
 	color.Color
@@ -405,7 +404,7 @@ type sankeyFlowThumbnailer struct {
 
 // Thumbnail fulfills the plot.Thumbnailer interface.
 func (t sankeyFlowThumbnailer) Thumbnail(c *draw.Canvas) {
-	// Draw fill
+	// Here we draw the fill.
 	pts := []vg.Point{
 		{c.Min.X, c.Min.Y},
 		{c.Min.X, c.Max.Y},
@@ -415,7 +414,7 @@ func (t sankeyFlowThumbnailer) Thumbnail(c *draw.Canvas) {
 	poly := c.ClipPolygonY(pts)
 	c.FillPolygon(t.Color, poly)
 
-	// draw upper border
+	// Here we draw the upper border.
 	pts = []vg.Point{
 		{c.Min.X, c.Max.Y},
 		{c.Max.X, c.Max.Y},
@@ -423,7 +422,7 @@ func (t sankeyFlowThumbnailer) Thumbnail(c *draw.Canvas) {
 	outline := c.ClipLinesY(pts)
 	c.StrokeLines(t.LineStyle, outline...)
 
-	// draw lower border
+	// Here we draw the lower border.
 	pts = []vg.Point{
 		{c.Min.X, c.Min.Y},
 		{c.Max.X, c.Min.Y},

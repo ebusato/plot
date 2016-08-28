@@ -100,8 +100,7 @@ type Flow struct {
 
 	// Group specifies the group that a flow belongs
 	// to. It is used in assigning styles to groups
-	// and creating legends. If Group is blank,
-	// the flow will be assigned to the group "Default".
+	// and creating legends.
 	Group string
 }
 
@@ -144,10 +143,6 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 				order:    len(s.stocks[f.ReceptorStockCategory]),
 				label:    f.ReceptorStockLabel,
 				category: f.ReceptorStockCategory,
-			}
-
-			if f.Group == "" {
-				f.Group = "Default"
 			}
 		}
 

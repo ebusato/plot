@@ -10,11 +10,10 @@ import (
 	"math"
 	"sort"
 
-	"github.com/gonum/floats"
+	"github.com/biogo/graphics/bezier"
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
-	"github.com/ready-steady/spline"
 )
 
 // A Sankey diagram presents stock and flow data as rectangles representing
@@ -194,11 +193,11 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 		startStock.sourceFlowPlaceholder += f.Value
 		endStock.receptorFlowPlaceholder += f.Value
 
-		ptsLow := s.spline(
+		ptsLow := s.bezier(
 			vg.Point{X: catStart, Y: valStartLow},
 			vg.Point{X: catEnd, Y: valEndLow},
 		)
-		ptsHigh := s.spline(
+		ptsHigh := s.bezier(
 			vg.Point{X: catEnd, Y: valEndHigh},
 			vg.Point{X: catStart, Y: valStartHigh},
 		)
@@ -309,30 +308,24 @@ func (s *Sankey) setStockMinMax(stocks *[]*stock) {
 	}
 }
 
-func (s *Sankey) spline(begin, end vg.Point) []vg.Point {
-	// directionOffsetFrac is a fraction to multiply the StockBarWidth
-	// by to get additional points to point the spline in the right direction.
-	const directionOffsetFrac = 0.1
-	directionOffset := s.StockBarWidth * directionOffsetFrac
-	x := []float64{
-		float64(begin.X),
-		float64(begin.X + directionOffset),
-		float64(end.X - directionOffset),
-		float64(end.X),
+// bezier creates a bezier curve between the begin and end points.
+func (s *Sankey) bezier(begin, end vg.Point) []vg.Point {
+	// directionOffsetFrac is the fraction of the distance between begin.X and
+	// end.X for the bezier control points.
+	const directionOffsetFrac = 0.3
+	inPts := []vg.Point{
+		begin,
+		vg.Point{X: begin.X + (end.X-begin.X)*directionOffsetFrac, Y: begin.Y},
+		vg.Point{X: begin.X + (end.X-begin.X)*(1-directionOffsetFrac), Y: end.Y},
+		end,
 	}
-	y := []float64{float64(begin.Y), float64(begin.Y), float64(end.Y), float64(end.Y)}
-	spl := spline.NewCubic(x, y)
+	curve := bezier.New(inPts...)
 
-	// nPoints is the number of points for spline interpolation.
+	// nPoints is the number of points for bezier interpolation.
 	const nPoints = 20
-	ox := make([]float64, nPoints)
-	oy := spl.Evaluate(floats.Span(ox, float64(begin.X), float64(end.X)))
-	o := make([]vg.Point, nPoints)
-	for i, x := range ox {
-		y := oy[i]
-		o[i] = vg.Point{X: vg.Length(x), Y: vg.Length(y)}
-	}
-	return o
+	outPts := make([]vg.Point, nPoints)
+	curve.Curve(outPts)
+	return outPts
 }
 
 // DataRange implements the plot.DataRanger interface.

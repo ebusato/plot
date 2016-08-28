@@ -45,7 +45,7 @@ type Sankey struct {
 	// individual stocks.
 	draw.TextStyle
 
-	flows []*Flow
+	flows []Flow
 
 	// FlowStyle is a function that specifies the
 	// background colar and border line style of the
@@ -103,26 +103,17 @@ type Flow struct {
 	// and creating legends. If Group is blank,
 	// the flow will be assigned to the group "Default".
 	Group string
-
-	// inUse  is used to ensure that this
-	// Flow is only used in one Plotter.
-	inUse bool
 }
 
 // NewSankey creates a new Sankey diagram with the specified
 // flows and stocks.
-func NewSankey(flows ...*Flow) (*Sankey, error) {
+func NewSankey(flows ...Flow) (*Sankey, error) {
 	s := new(Sankey)
 
 	s.stocks = make(map[int]map[string]*stock)
 
 	s.flows = flows
 	for i, f := range flows {
-		if f.inUse {
-			panic("this Flow is already in use in another Plotter")
-		}
-		f.inUse = true
-
 		// check stock category order
 		if f.SourceStockCategory >= f.ReceptorStockCategory {
 			return nil, fmt.Errorf("plotter.NewSankey: Flow %d SourceStockCategory (%d) "+

@@ -58,8 +58,8 @@ type Sankey struct {
 	// the color of the fill for the bar representing the stock (c),
 	// and the style of the outline of the bar representing the stock (ls).
 	// The default function uses the default TextStyle, color and LineStyle
-	// specified above for all stocks, and uses the stock label
-	// as the text to be printed on the plot.
+	// specified above for all stocks; zero horizontal and vertical offsets;
+	// and the stock label as the text to be printed on the plot.
 	StockStyle func(label string, category int) (lbl string, ts draw.TextStyle, xOff, yOff vg.Length, c color.Color, ls draw.LineStyle)
 
 	// stocks arranges the stocks by category.

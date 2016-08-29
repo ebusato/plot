@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/gonum/plot"
+	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
 )
 
@@ -348,6 +349,22 @@ func ExampleSankey_grouped() {
 		}
 	}
 
+	// Here we set the StockStyle function to give an example of
+	// setting a custom style for one of the stocks.
+	sankey.StockStyle = func(label string, category int) (string, draw.TextStyle, vg.Length, vg.Length, color.Color, draw.LineStyle) {
+		if label == "Small" && category == treeType {
+			ts := sankey.TextStyle
+			ts.Rotation = 0.0
+			ts.XAlign = draw.XRight
+			ls := sankey.LineStyle
+			ls.Color = color.White
+			xOff := -sankey.StockBarWidth / 2
+			yOff := vg.Length(0)
+			return "small", ts, xOff, yOff, color.Black, ls
+		}
+		return label, sankey.TextStyle, 0, 0, sankey.Color, sankey.LineStyle
+	}
+
 	// Here we set the backgroud color for stocks from grey to white.
 	sankey.Color = color.White
 
@@ -362,6 +379,9 @@ func ExampleSankey_grouped() {
 	}
 	p.Legend.Top = true
 	p.X.Max = 3.05 // give room for the legend
+
+	// Add boundary boxes for debugging.
+	p.Add(NewGlyphBoxes())
 
 	err = p.Save(300, 180, "testdata/sankeyGrouped.png")
 	if err != nil {

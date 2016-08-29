@@ -51,6 +51,17 @@ type Sankey struct {
 	// specified above for all groups.
 	FlowStyle func(group string) (color.Color, draw.LineStyle)
 
+	// StockStyle is a function that specifies, for a stock
+	// identified by its label and category, the label text
+	// to be printed on the plot (lbl), the style of the text (ts),
+	// the horizontal and vertical offsets for printing the text (xOff and yOff),
+	// the color of the fill for the bar representing the stock (c),
+	// and the style of the outline of the bar representing the stock (ls).
+	// The default function uses the default TextStyle, color and LineStyle
+	// specified above for all stocks, and uses the stock label
+	// as the text to be printed on the plot.
+	StockStyle func(label string, category int) (lbl string, ts draw.TextStyle, xOff, yOff vg.Length, c color.Color, ls draw.LineStyle)
+
 	// stocks arranges the stocks by category.
 	// The first key is the category and the seond
 	// key is the label.
@@ -174,6 +185,10 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 		return s.Color, s.LineStyle
 	}
 
+	s.StockStyle = func(label string, category int) (string, draw.TextStyle, vg.Length, vg.Length, color.Color, draw.LineStyle) {
+		return label, s.TextStyle, 0, 0, s.Color, s.LineStyle
+	}
+
 	return s, nil
 }
 
@@ -230,6 +245,8 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 		catMin, catMax := catLoc-s.StockBarWidth/2, catLoc+s.StockBarWidth/2
 		valMin, valMax := trVal(stk.min), trVal(stk.max)
 
+		label, textStyle, xOff, yOff, color, lineStyle := s.StockStyle(stk.label, stk.category)
+
 		// Here we fill the stock bars.
 		pts := []vg.Point{
 			{catMin, valMin},
@@ -239,10 +256,10 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 		}
 		if s.Color != nil {
 			// poly := c.ClipPolygonX(pts) // This causes half of the bar to disappear. Is there a best practice here?
-			c.FillPolygon(s.Color, pts) // poly)
+			c.FillPolygon(color, pts) // poly)
 		}
-		txtPt := vg.Point{X: (catMin + catMax) / 2, Y: (valMin + valMax) / 2}
-		c.FillText(s.TextStyle, txtPt, stk.label)
+		txtPt := vg.Point{X: (catMin+catMax)/2 + xOff, Y: (valMin+valMax)/2 + yOff}
+		c.FillText(textStyle, txtPt, label)
 
 		// Here we draw the bottom edge.
 		pts = []vg.Point{
@@ -250,7 +267,7 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 			{catMax, valMin},
 		}
 		// outline := c.ClipLinesX(pts) // This causes half of the lines to disappear.
-		c.StrokeLines(s.LineStyle, pts) //outline...)
+		c.StrokeLines(lineStyle, pts) //outline...)
 
 		// Here we draw the top edge plus vertical edges where there are
 		// no flows connected.
@@ -266,7 +283,7 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 			pts = append(pts, vg.Point{X: catMax, Y: y})
 		}
 		//outline = c.ClipLinesX(pts)
-		c.StrokeLines(s.LineStyle, pts) // outline...)
+		c.StrokeLines(lineStyle, pts) // outline...)
 	}
 }
 
@@ -368,7 +385,7 @@ func (s *Sankey) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
 	boxes := make([]plot.GlyphBox, 0, len(s.flows)+len(stocks))
 
 	for _, stk := range stocks {
-		b := plot.GlyphBox{
+		b1 := plot.GlyphBox{
 			X: plt.X.Norm(float64(stk.category)),
 			Y: plt.Y.Norm((stk.min + stk.max) / 2),
 			Rectangle: vg.Rectangle{
@@ -376,7 +393,18 @@ func (s *Sankey) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
 				Max: vg.Point{X: s.StockBarWidth / 2},
 			},
 		}
-		boxes = append(boxes, b)
+		label, textStyle, xOff, yOff, _, _ := s.StockStyle(stk.label, stk.category)
+		rect := textStyle.Rectangle(label)
+		rect.Min.X += xOff
+		rect.Max.X += xOff
+		rect.Min.Y += yOff
+		rect.Max.Y += yOff
+		b2 := plot.GlyphBox{
+			X:         plt.X.Norm(float64(stk.category)),
+			Y:         plt.Y.Norm((stk.min + stk.max) / 2),
+			Rectangle: rect,
+		}
+		boxes = append(boxes, b1, b2)
 	}
 	return boxes
 }

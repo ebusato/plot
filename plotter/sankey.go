@@ -59,10 +59,19 @@ type Sankey struct {
 
 // stock represents the amount of a stock and its plotting order.
 type stock struct {
+	// receptorValue and sourceValue are the totals of the values
+	// of flows coming into and going out of this stock, respectively.
 	receptorValue, sourceValue float64
-	label                      string
-	category                   int
-	order                      int
+
+	// label is the label of this stock, and category represents
+	// its placement on the category axis. Together they make up a
+	// unique identifier.
+	label    string
+	category int
+
+	// order is the plotting order of this stock compared
+	// to other stocks in the same category.
+	order int
 
 	// min represents the beginning of the plotting location
 	// on the value axis.
@@ -112,8 +121,7 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 	for i, f := range flows {
 		// Here we make sure the stock categories are in the proper order.
 		if f.SourceCategory >= f.ReceptorCategory {
-			return nil, fmt.Errorf("plotter.NewSankey: Flow %d SourceCategory (%d) "+
-				">= ReceptorCategory (%d)", i, f.SourceCategory, f.ReceptorCategory)
+			return nil, fmt.Errorf("plotter.NewSankey: Flow %d SourceCategory (%d) >= ReceptorCategory (%d)", i, f.SourceCategory, f.ReceptorCategory)
 		}
 		if f.Value < 0 {
 			return nil, fmt.Errorf("plotter.NewSankey: Flow %d value (%g) < 0", i, f.Value)

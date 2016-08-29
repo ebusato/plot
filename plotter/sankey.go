@@ -21,9 +21,11 @@ import (
 // amount of each flow.
 type Sankey struct {
 	// Color specifies the default fill
-	// colors for the stocks and flows. Colors can be
+	// colors for the stocks and flows. If Color is not nil,
+	// each stock and flow is rendered filled with Color,
+	// otherwise no fill is performed. Colors can be
 	// modified for individual stocks and flows.
-	color.Color
+	Color color.Color
 
 	// StockBarWidth is the widths of the bars representing
 	// the stocks. The default value is 15% larger than the
@@ -33,12 +35,12 @@ type Sankey struct {
 	// LineStyle specifies the default border
 	// line style for the stocks and flows. Styles can be
 	// modified for individual stocks and flows.
-	draw.LineStyle
+	LineStyle draw.LineStyle
 
 	// TextStyle specifies the default stock label
 	// text style. Styles can be modified for
 	// individual stocks.
-	draw.TextStyle
+	TextStyle draw.TextStyle
 
 	flows []Flow
 
@@ -147,8 +149,6 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 	}
 
 	s.LineStyle = DefaultLineStyle
-	s.LineStyle.Color = color.NRGBA{R: 0, G: 0, B: 0, A: 150}
-	s.Color = color.NRGBA{R: 0, G: 0, B: 0, A: 100}
 
 	fnt, err := vg.MakeFont(DefaultFont, DefaultFontSize)
 	if err != nil {
@@ -201,8 +201,10 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 		color, lineStyle := s.FlowStyle(f.Group)
 
 		// Here we fill the flow polygons.
-		poly := c.ClipPolygonX(append(ptsLow, ptsHigh...))
-		c.FillPolygon(color, poly)
+		if color != nil {
+			poly := c.ClipPolygonX(append(ptsLow, ptsHigh...))
+			c.FillPolygon(color, poly)
+		}
 
 		// Here we draw the flow edges.
 		outline := c.ClipLinesX(ptsLow)
@@ -227,8 +229,10 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 			{catMax, valMax},
 			{catMax, valMin},
 		}
-		// poly := c.ClipPolygonX(pts) // This causes half of the bar to disappear. Is there a best practice here?
-		c.FillPolygon(s.Color, pts) // poly)
+		if s.Color != nil {
+			// poly := c.ClipPolygonX(pts) // This causes half of the bar to disappear. Is there a best practice here?
+			c.FillPolygon(s.Color, pts) // poly)
+		}
 		txtPt := vg.Point{X: (catMin + catMax) / 2, Y: (valMin + valMax) / 2}
 		c.FillText(s.TextStyle, txtPt, stk.label)
 

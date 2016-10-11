@@ -68,9 +68,9 @@ type Sankey struct {
 	stocks map[int]map[string]*stock
 }
 
-// StockMinMax returns the minimum and maximum value on the value axis
+// StockRange returns the minimum and maximum value on the value axis
 // for the stock with the specified label and category.
-func (s *Sankey) StockMinMax(label string, category int) (min, max float64, err error) {
+func (s *Sankey) StockRange(label string, category int) (min, max float64, err error) {
 	stk, ok := s.stocks[category][label]
 	if !ok {
 		return 0, 0, fmt.Errorf("plotter: sankey diagram does not contain stock with label=%s and category=%d", label, category)
@@ -200,7 +200,7 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 	}
 
 	stocks := s.stockList()
-	s.setStockMinMax(&stocks)
+	s.setStockRange(&stocks)
 
 	return s, nil
 }
@@ -325,8 +325,8 @@ func (s stockSorter) Less(i, j int) bool {
 	panic(fmt.Errorf("plotter: can't sort stocks:\n%+v\n%+v", s[i], s[j]))
 }
 
-// setStockMin sets the minimum and maximum values of the stock plotting locations.
-func (s *Sankey) setStockMinMax(stocks *[]*stock) {
+// setStockRange sets the minimum and maximum values of the stock plotting locations.
+func (s *Sankey) setStockRange(stocks *[]*stock) {
 	var cat int
 	var min float64
 	for _, stk := range *stocks {

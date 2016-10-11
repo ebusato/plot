@@ -375,7 +375,7 @@ func ExampleSankey_grouped() {
 			// canvas size and the size of the plotting area here, if a label
 			// was only slightly larger than the available space, it would not
 			// be caught and replaced.
-			min, max, err := sankey.StockMinMax(label, category)
+			min, max, err := sankey.StockRange(label, category)
 			if err != nil {
 				log.Panic(err)
 			}

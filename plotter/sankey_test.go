@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
+	"github.com/gonum/plot/vg/vgimg"
 )
 
 // ExampleSankey_sample creates a simple sankey diagram.
@@ -132,7 +134,7 @@ func ExampleSankey_simple() {
 	p.Add(sankey)
 	p.Y.Label.Text = "Number of apples"
 	p.NominalX(categoryLabels...)
-	err = p.Save(300, 180, "testdata/sankeySimple.png")
+	err = p.Save(vg.Points(300), vg.Points(180), "testdata/sankeySimple.png")
 	if err != nil {
 		log.Panic(err)
 	}
@@ -149,6 +151,8 @@ func ExampleSankey_grouped() {
 	if err != nil {
 		log.Panic(err)
 	}
+	c := vgimg.New(vg.Points(300), vg.Points(180))
+	dc := draw.New(c)
 
 	// Define the stock categories
 	const (
@@ -161,7 +165,7 @@ func ExampleSankey_grouped() {
 	flows := []Flow{
 		Flow{
 			SourceCategory:   treeType,
-			SourceLabel:      "Large",
+			SourceLabel:      "LargeLargeLargeLargeLargeLargeLargeLargeLarge",
 			ReceptorCategory: consumer,
 			ReceptorLabel:    "Mohamed",
 			Group:            "Apples",
@@ -169,7 +173,7 @@ func ExampleSankey_grouped() {
 		},
 		Flow{
 			SourceCategory:   treeType,
-			SourceLabel:      "Large",
+			SourceLabel:      "LargeLargeLargeLargeLargeLargeLargeLargeLarge",
 			ReceptorCategory: consumer,
 			ReceptorLabel:    "Mohamed",
 			Group:            "Dates",
@@ -185,7 +189,7 @@ func ExampleSankey_grouped() {
 		},
 		Flow{
 			SourceCategory:   treeType,
-			SourceLabel:      "Large",
+			SourceLabel:      "LargeLargeLargeLargeLargeLargeLargeLargeLarge",
 			ReceptorCategory: consumer,
 			ReceptorLabel:    "Sofia",
 			Group:            "Apples",
@@ -193,7 +197,7 @@ func ExampleSankey_grouped() {
 		},
 		Flow{
 			SourceCategory:   treeType,
-			SourceLabel:      "Large",
+			SourceLabel:      "LargeLargeLargeLargeLargeLargeLargeLargeLarge",
 			ReceptorCategory: consumer,
 			ReceptorLabel:    "Sofia",
 			Group:            "Dates",
@@ -209,7 +213,7 @@ func ExampleSankey_grouped() {
 		},
 		Flow{
 			SourceCategory:   treeType,
-			SourceLabel:      "Large",
+			SourceLabel:      "LargeLargeLargeLargeLargeLargeLargeLargeLarge",
 			ReceptorCategory: consumer,
 			ReceptorLabel:    "Wei",
 			Group:            "Lychees",
@@ -305,7 +309,7 @@ func ExampleSankey_grouped() {
 		},
 		Flow{
 			SourceCategory:   treeType,
-			SourceLabel:      "Large",
+			SourceLabel:      "LargeLargeLargeLargeLargeLargeLargeLargeLarge",
 			ReceptorCategory: fate,
 			ReceptorLabel:    "Waste",
 			Group:            "Apples",
@@ -313,7 +317,7 @@ func ExampleSankey_grouped() {
 		},
 		Flow{
 			SourceCategory:   treeType,
-			SourceLabel:      "Large",
+			SourceLabel:      "LargeLargeLargeLargeLargeLargeLargeLargeLarge",
 			ReceptorCategory: fate,
 			ReceptorLabel:    "Waste",
 			Group:            "Dates",
@@ -353,6 +357,8 @@ func ExampleSankey_grouped() {
 	// setting a custom style for one of the stocks.
 	sankey.StockStyle = func(label string, category int) (string, draw.TextStyle, vg.Length, vg.Length, color.Color, draw.LineStyle) {
 		if label == "Small" && category == treeType {
+			// Here we demonstrate how to rotate the label text
+			// and change the style of the stock bar.
 			ts := sankey.TextStyle
 			ts.Rotation = 0.0
 			ts.XAlign = draw.XRight
@@ -361,6 +367,23 @@ func ExampleSankey_grouped() {
 			xOff := -sankey.StockBarWidth / 2
 			yOff := vg.Length(0)
 			return "small", ts, xOff, yOff, color.Black, ls
+		}
+		if label == "LargeLargeLargeLargeLargeLargeLargeLargeLarge" && category == treeType {
+			// Here we demonstrate how to replace a long label that doesn't fit
+			// in the existing space with a shorter version. Note that because
+			// we are not able to account for the difference between the overall
+			// canvas size and the size of the plotting area here, if a label
+			// was only slightly larger than the available space, it would not
+			// be caught and replaced.
+			min, max, err := sankey.StockMinMax(label, category)
+			if err != nil {
+				log.Panic(err)
+			}
+			_, yTr := p.Transforms(&dc)
+			barHeight := yTr(max) - yTr(min)
+			if sankey.TextStyle.Font.Width(label) > barHeight {
+				return "large", sankey.TextStyle, 0, 0, sankey.Color, sankey.LineStyle
+			}
 		}
 		return label, sankey.TextStyle, 0, 0, sankey.Color, sankey.LineStyle
 	}
@@ -383,8 +406,13 @@ func ExampleSankey_grouped() {
 	// Add boundary boxes for debugging.
 	p.Add(NewGlyphBoxes())
 
-	err = p.Save(300, 180, "testdata/sankeyGrouped.png")
+	p.Draw(dc)
+	pngimg := vgimg.PngCanvas{Canvas: c}
+	f, err := os.Create("testdata/sankeyGrouped.png")
 	if err != nil {
+		log.Panic(err)
+	}
+	if _, err = pngimg.WriteTo(f); err != nil {
 		log.Panic(err)
 	}
 }

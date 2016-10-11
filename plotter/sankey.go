@@ -68,6 +68,16 @@ type Sankey struct {
 	stocks map[int]map[string]*stock
 }
 
+// StockMinMax returns the minimum and maximum value on the value axis
+// for the stock with the specified label and category.
+func (s *Sankey) StockMinMax(label string, category int) (min, max float64, err error) {
+	stk, ok := s.stocks[category][label]
+	if !ok {
+		return 0, 0, fmt.Errorf("plotter: sankey diagram does not contain stock with label=%s and category=%d", label, category)
+	}
+	return stk.min, stk.max, nil
+}
+
 // stock represents the amount of a stock and its plotting order.
 type stock struct {
 	// receptorValue and sourceValue are the totals of the values
@@ -189,14 +199,14 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 		return label, s.TextStyle, 0, 0, s.Color, s.LineStyle
 	}
 
+	stocks := s.stockList()
+	s.setStockMinMax(&stocks)
+
 	return s, nil
 }
 
 // Plot implements the plot.Plotter interface.
 func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
-	stocks := s.stockList()
-	s.setStockMinMax(&stocks)
-
 	trCat, trVal := plt.Transforms(&c)
 
 	// Here we draw the flows.
@@ -237,7 +247,7 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 	}
 
 	// Here we draw the stocks.
-	for _, stk := range stocks {
+	for _, stk := range s.stockList() {
 		catLoc := trCat(float64(stk.category))
 		if !c.ContainsX(catLoc) {
 			continue
@@ -366,10 +376,9 @@ func (s *Sankey) DataRange() (xmin, xmax, ymin, ymax float64) {
 		catMax = math.Max(catMax, c)
 	}
 
+	stocks := s.stockList()
 	valMin := math.Inf(1)
 	valMax := math.Inf(-1)
-	stocks := s.stockList()
-	s.setStockMinMax(&stocks)
 	for _, stk := range stocks {
 		valMin = math.Min(valMin, stk.min)
 		valMax = math.Max(valMax, stk.max)
@@ -380,8 +389,6 @@ func (s *Sankey) DataRange() (xmin, xmax, ymin, ymax float64) {
 // GlyphBoxes implements the GlyphBoxer interface.
 func (s *Sankey) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
 	stocks := s.stockList()
-	s.setStockMinMax(&stocks)
-
 	boxes := make([]plot.GlyphBox, 0, len(s.flows)+len(stocks))
 
 	for _, stk := range stocks {

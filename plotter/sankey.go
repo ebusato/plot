@@ -276,7 +276,6 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 			{catMin, valMin},
 			{catMax, valMin},
 		}
-		// outline := c.ClipLinesX(pts) // This causes half of the lines to disappear.
 		c.StrokeLines(lineStyle, pts) //outline...)
 
 		// Here we draw the top edge plus vertical edges where there are
@@ -292,7 +291,6 @@ func (s *Sankey) Plot(c draw.Canvas, plt *plot.Plot) {
 			y := trVal(stk.max - (stk.receptorValue - stk.sourceValue))
 			pts = append(pts, vg.Point{X: catMax, Y: y})
 		}
-		//outline = c.ClipLinesX(pts)
 		c.StrokeLines(lineStyle, pts) // outline...)
 	}
 }

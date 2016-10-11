@@ -45,7 +45,7 @@ type Sankey struct {
 	flows []Flow
 
 	// FlowStyle is a function that specifies the
-	// background colar and border line style of the
+	// background color and border line style of the
 	// flow based on its group name. The default
 	// function uses the default Color and LineStyle
 	// specified above for all groups.
@@ -134,7 +134,7 @@ type Flow struct {
 // NewSankey creates a new Sankey diagram with the specified
 // flows and stocks.
 func NewSankey(flows ...Flow) (*Sankey, error) {
-	s := new(Sankey)
+	var s Sankey
 
 	s.stocks = make(map[int]map[string]*stock)
 
@@ -142,10 +142,10 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 	for i, f := range flows {
 		// Here we make sure the stock categories are in the proper order.
 		if f.SourceCategory >= f.ReceptorCategory {
-			return nil, fmt.Errorf("plotter.NewSankey: Flow %d SourceCategory (%d) >= ReceptorCategory (%d)", i, f.SourceCategory, f.ReceptorCategory)
+			return nil, fmt.Errorf("plotter: Flow %d SourceCategory (%d) >= ReceptorCategory (%d)", i, f.SourceCategory, f.ReceptorCategory)
 		}
 		if f.Value < 0 {
-			return nil, fmt.Errorf("plotter.NewSankey: Flow %d value (%g) < 0", i, f.Value)
+			return nil, fmt.Errorf("plotter: Flow %d value (%g) < 0", i, f.Value)
 		}
 
 		// Here we initialize the stock holders.
@@ -202,7 +202,7 @@ func NewSankey(flows ...Flow) (*Sankey, error) {
 	stocks := s.stockList()
 	s.setStockRange(&stocks)
 
-	return s, nil
+	return &s, nil
 }
 
 // Plot implements the plot.Plotter interface.
